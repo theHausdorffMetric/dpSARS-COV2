@@ -36,7 +36,10 @@ purrr::map(.x=list("CH","IT","DE","FR","GB","ES"),.f=myexfn) %>%
        title="COVID-19 confirmed cases (CSSE John Hopkins)") +
   theme(legend.position="bottom")
 
+purrr::map(.x=list("CH","IT","DE","FR","GB","ES","US"),.f=myexfn) %>%
+  reduce(.f=dplyr::full_join,by="Date") %>% tail(10)
   
   
-  
+(my.df<-data.frame(t=1:10,y=tail(myexfn("CH"),10)[,2]))
+
 
