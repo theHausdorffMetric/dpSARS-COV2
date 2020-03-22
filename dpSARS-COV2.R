@@ -1,6 +1,7 @@
 library(RCurl)
 library(jsonlite)
 library(tidyverse)
+library(gridExtra)
 
 #
 covid_df<-jsonlite::fromJSON(RCurl::getURL("https://coronavirus-tracker-api.herokuapp.com/all"))
@@ -37,9 +38,45 @@ purrr::map(.x=list("CH","IT","DE","FR","GB","ES"),.f=myexfn) %>%
   theme(legend.position="bottom")
 
 purrr::map(.x=list("CH","IT","DE","FR","GB","ES","US"),.f=myexfn) %>%
-  reduce(.f=dplyr::full_join,by="Date") %>% tail(10)
+  reduce(.f=dplyr::full_join,by="Date") %>% tail(10) 
   
-  
-(my.df<-data.frame(t=1:10,y=tail(myexfn("CH"),10)[,2]))
+(
+  mydf<-myexfn("CH") %>% 
+    dplyr::filter(CH > 100) %>%
+    dplyr::mutate(
+      t=1:n(),
+      dCH=CH-dplyr::lag(CH,1),
+      gr=dCH/CH,
+      egr=c(NA,base::diff(log(CH)))
+    )
+)
+
+summary(myfit<-lm(log(CH)~t,data=mydf))
+
+mydf$fit<-exp(myfit$fitted.values)
+mydf$dfit<-c(NA,diff(mydf$fit))
+mydf
+             
+mydbl<-log(2)/myfit$coefficients[2]
+
+#library(scales)
+#show_col(hue_pal()(4))
+
+P1<-mydf %>%
+  ggplot() +
+  geom_point(aes(x=t,y=CH),color="#F8766D") + 
+  geom_point(aes(x=t,y=fit),color="#00BFC4") +
+  geom_line(aes(x=t,y=fit),color="#00BFC4") +
+  annotate("text", x=5, y=5000, label=sprintf("Doubling time: %.2f days",mydbl))
+
+P2 <- mydf %>% 
+  dplyr::select(t,dCH,dfit) %>% 
+  tidyr::gather(Variable,Value,-t) %>%
+  ggplot(aes(x=factor(t),y=Value,fill=Variable)) +
+  geom_bar(stat="identity",position=position_dodge()) +
+  theme(legend.position="bottom")
+
+
+grid.arrange(P1,P2)
 
 
