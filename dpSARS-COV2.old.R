@@ -68,7 +68,6 @@ P1<-mydf %>%
   geom_point(aes(x=t,y=CH),color="#F8766D") + 
   geom_point(aes(x=t,y=fit),color="#00BFC4") +
   geom_line(aes(x=t,y=fit),color="#00BFC4") +
-  scale_y_log10() +
   annotate("text", x=5, y=5000, label=sprintf("Doubling time: %.2f days",mydbl))
 
 P2 <- mydf %>% 

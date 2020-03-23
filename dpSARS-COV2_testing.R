@@ -4,11 +4,10 @@ library(tidyverse)
 library(gridExtra)
 
 #
-covid_df<-jsonlite::fromJSON(RCurl::getURL("https://coronavirus-tracker-api.herokuapp.com/all"))
-
+covid_df<-read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")
 
 myexfn<-function(country_code){
-  myn<-which(covid_df$confirmed$locations$country_code==country_code)
+  myn<-which(covid_df$`Country/Region`==country_code)
   crapdates<-names(covid_df$confirmed$locations$history[myn[1],]) %>% as.Date(format="%m/%d/%y")
   cvalues<-as.numeric(base::colSums(covid_df$confirmed$locations$history[myn,]))
   retdat<-data.frame(Date=crapdates,Cvalues=cvalues) %>% 
@@ -16,6 +15,8 @@ myexfn<-function(country_code){
   colnames(retdat)<-c("Date",country_code)
   return(retdat)
 }
+country_code<-"CH"
+
 
 if(FALSE){
   purrr::map(.x=list("CH","IT","DE","FR","GR"),.f=myexfn) %>%
@@ -68,7 +69,6 @@ P1<-mydf %>%
   geom_point(aes(x=t,y=CH),color="#F8766D") + 
   geom_point(aes(x=t,y=fit),color="#00BFC4") +
   geom_line(aes(x=t,y=fit),color="#00BFC4") +
-  scale_y_log10() +
   annotate("text", x=5, y=5000, label=sprintf("Doubling time: %.2f days",mydbl))
 
 P2 <- mydf %>% 
@@ -82,5 +82,4 @@ P2 <- mydf %>%
 grid.arrange(P1,P2)
 
 
-jnk<-read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")
 
