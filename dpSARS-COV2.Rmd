@@ -1,11 +1,25 @@
+---
+title: "COVID19"
+author: "dp"
+date: "24 March 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 library(RCurl)
 library(jsonlite)
 library(tidyverse)
 library(gridExtra)
 
-#
-covid_df<-jsonlite::fromJSON(RCurl::getURL("https://coronavirus-tracker-api.herokuapp.com/all"))
+```
 
+# CSSE
+
+
+```{r}
+
+covid_df<-jsonlite::fromJSON(RCurl::getURL("https://coronavirus-tracker-api.herokuapp.com/all"))
 
 myexfn<-function(country_code){
   myn<-which(covid_df$confirmed$locations$country_code==country_code)
@@ -17,17 +31,14 @@ myexfn<-function(country_code){
   return(retdat)
 }
 
-if(FALSE){
-  purrr::map(.x=list("CH","IT","DE","FR","GR"),.f=myexfn) %>%
-    reduce(.f=dplyr::full_join,by="Date") 
-  
-  jnk<-which(covid_df$confirmed$locations$country_code=="GB")
-  covid_df$confirmed$locations$province[jnk]
-}
+```
 
+## Country Comparison
+
+```{r}
 
 purrr::map(.x=list("CH","IT","DE","FR","GB","ES"),.f=myexfn) %>%
-  reduce(.f=dplyr::full_join,by="Date") %>%
+  purrr::reduce(.f=dplyr::full_join,by="Date") %>%
   tidyr::gather(Country,Value,-Date) %>% 
   ggplot(aes(x=Date,y=Value,colour=Country)) +
   geom_point() +
@@ -37,16 +48,18 @@ purrr::map(.x=list("CH","IT","DE","FR","GB","ES"),.f=myexfn) %>%
        title="COVID-19 confirmed cases (CSSE John Hopkins)") +
   theme(legend.position="bottom")
 
+```
+
+```{r}
 purrr::map(.x=list("CH","IT","DE","FR","GB","ES","US"),.f=myexfn) %>%
   reduce(.f=dplyr::full_join,by="Date") %>% 
   dplyr::select(-Date) %>%
   dplyr::mutate_all(~c(NA,diff(log(.)))) %>%
   tail(10)
+```
 
-purrr::map(.x=list("CH","IT","DE","FR","GB","ES","US"),.f=myexfn) %>%
-  reduce(.f=dplyr::full_join,by="Date") %>% tail(10) 
-  
-(
+## CH
+```{r}
   mydf<-myexfn("CH") %>% 
     dplyr::filter(CH > 100) %>%
     dplyr::mutate(
@@ -56,19 +69,17 @@ purrr::map(.x=list("CH","IT","DE","FR","GB","ES","US"),.f=myexfn) %>%
       gr=dCH/CH,
       egr=c(NA,base::diff(log(CH)))
     )
-)
+```
 
+```{r}
 summary(myfit<-lm(log(CH)~t,data=mydf))
-
 mydf$fit<-exp(myfit$fitted.values)
 mydf$dfit<-c(NA,diff(mydf$fit))
 mydf
-             
+```
+
+```{r}
 mydbl<-log(2)/myfit$coefficients[2]
-
-#library(scales)
-#show_col(hue_pal()(4))
-
 P1<-mydf %>%
   ggplot() +
   geom_point(aes(x=t,y=CH),color="#F8766D") + 
@@ -84,33 +95,32 @@ P2 <- mydf %>%
   geom_bar(stat="identity",position=position_dodge()) +
   theme(legend.position="bottom",axis.text.x = element_text(angle = 90))
 
-
 grid.arrange(P1,P2)
+```
 
+# Corona-data.ch
 
-
-if (FALSE) {
-  
+```{r}
 jnk<-read_csv("https://raw.githubusercontent.com/daenuprobst/covid19-cases-switzerland/master/covid19_cases_switzerland.csv")
 
-(
-  mydf<-jnk %>%
-    dplyr::select(Date,CH) %>%
-    dplyr::mutate(
-      Label=format(Date,"%m-%d"),
-      t=1:n(),
-      dCH=CH-dplyr::lag(CH,1),
-      gr=dCH/CH,
-      egr=c(NA,base::diff(log(CH)))
-    )
-)
+mydf<-jnk %>%
+  dplyr::select(Date,CH) %>%
+  dplyr::mutate(
+    Label=format(Date,"%m-%d"),
+    t=1:n(),
+    dCH=CH-dplyr::lag(CH,1),
+    gr=dCH/CH,
+    egr=c(NA,base::diff(log(CH)))
+  )
 
 summary(myfit<-lm(log(CH)~t,data=mydf))
 
 mydf$fit<-exp(myfit$fitted.values)
 mydf$dfit<-c(NA,diff(mydf$fit))
 mydf
+```
 
+```{r}
 mydbl<-log(2)/myfit$coefficients[2]
 
 P1<-mydf %>%
@@ -128,9 +138,6 @@ P2 <- mydf %>%
   geom_bar(stat="identity",position=position_dodge()) +
   theme(legend.position="bottom",axis.text.x = element_text(angle = 90))
 
-
 grid.arrange(P1,P2)
+```
 
-jnk$CH
-
-}
